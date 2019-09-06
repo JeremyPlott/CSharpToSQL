@@ -8,9 +8,61 @@ namespace CSharpToSQLLibrary {
 
         public static Connection Connection { get; set; }
 
+        public static bool Insert(Users user) {
+            var sql = "INSERT into Users " +
+                "(Username, Password, Firstname, Lastname, Phone, Email, IsAdmin,IsReviewer) " +
+                " VALUES " +
+                "(@Username, @Password, @Firstname, @Lastname, @Phone, @Email, @IsAdmin, @Isreviewer)";
+                //$"({user.Username}, {user.Password}, {user.Firstname}, {user.Lastname}, " +
+                //$" {user.Phone}, {user.Email}, {user.IsAdmin}, {user.IsReviewer})" +
+            var sqlCmd = new SqlCommand(sql, Connection.sqlConnection);
+            SetParameterValues(user, sqlCmd);
+            var rowsAffected = sqlCmd.ExecuteNonQuery();
+            return rowsAffected == 1;
+        }
+
+        public static bool Update(Users user) {
+            var sql = "UPDATE Users Set " +
+                " Username = @Username, " +
+                " Password = @Password, " +
+                " Firstname = @Firstname, " +
+                " Lastname = @Lastname, " +
+                " Phone = @Phone, " +
+                " Email = @Email, " +
+                " IsAdmin = @IsAdmin, " +
+                " IsReviewer = @IsReviewer " +
+                " WHERE Id = @Id";
+            var sqlCmd = new SqlCommand(sql, Connection.sqlConnection);
+            sqlCmd.Parameters.AddWithValue("@Id", user.Id);
+            SetParameterValues(user, sqlCmd);
+            var rowsAffected = sqlCmd.ExecuteNonQuery();
+            return rowsAffected == 1;
+        }
+
+        private static void SetParameterValues(Users user, SqlCommand sqlCmd) {
+            sqlCmd.Parameters.AddWithValue("@Username", user.Username);
+            sqlCmd.Parameters.AddWithValue("@Password", user.Password);
+            sqlCmd.Parameters.AddWithValue("@Firstname", user.Firstname);
+            sqlCmd.Parameters.AddWithValue("@Lastname", user.Lastname);
+            sqlCmd.Parameters.AddWithValue("@Phone", (object)user.Phone ?? DBNull.Value); //sends SQL null if there isn't a defined value
+            sqlCmd.Parameters.AddWithValue("@Email", (object)user.Email ?? DBNull.Value);
+            sqlCmd.Parameters.AddWithValue("@IsAdmin", user.IsAdmin);
+            sqlCmd.Parameters.AddWithValue("@IsReviewer", user.IsReviewer);
+        }
+
+        const string SqlDelete = "DELETE from users where Id = @Id;"; //means this string cannot be changed. Safety net. These would often go up at the top for ease of editing multi lines.
+
+        public static bool Delete(int id) {
+            var sql = SqlDelete;
+            var sqlCmd = new SqlCommand(sql, Connection.sqlConnection);
+            sqlCmd.Parameters.AddWithValue("@Id", id);
+            var rowsAffected = sqlCmd.ExecuteNonQuery();            
+            return rowsAffected == 1;
+        }
+
         public static Users Login(string username, string password) {
             var sql = "SELECT * from users where Username = @Username AND Password = @Password"; 
-            var sqlCmd = new SqlCommand(sql, Connection._Connection);
+            var sqlCmd = new SqlCommand(sql, Connection.sqlConnection);
             sqlCmd.Parameters.AddWithValue("@Username", username); 
             sqlCmd.Parameters.AddWithValue("@Password", password); 
             var reader = sqlCmd.ExecuteReader();
@@ -28,10 +80,11 @@ namespace CSharpToSQLLibrary {
 
         public static Users GetByPK(int id) {
             var sql = "SELECT * from users where Id = @Id"; //this prevents SQL Injection where as "where Id = " + Id" concatenation is risky
-            var sqlCmd = new SqlCommand(sql, Connection._Connection);
+            var sqlCmd = new SqlCommand(sql, Connection.sqlConnection);
             sqlCmd.Parameters.AddWithValue("@Id", id); //adds a value to the parameter in the above SQL statement
             var reader = sqlCmd.ExecuteReader();
             if(!reader.HasRows) { //if reader.HasRows == false
+                reader.Close();
                 return null;
             }
             reader.Read();
@@ -44,7 +97,7 @@ namespace CSharpToSQLLibrary {
 
         public static List<Users> GetAll() {
             var sql = "SELECT * from Users;"; //make sure SQL statements work in SSMS first
-            var sqlCmd = new SqlCommand(sql, Connection._Connection);
+            var sqlCmd = new SqlCommand(sql, Connection.sqlConnection);
             var reader = sqlCmd.ExecuteReader();
             var users = new List<Users>();
             while(reader.Read()) {
@@ -68,6 +121,8 @@ namespace CSharpToSQLLibrary {
             user.IsReviewer = (bool)reader["IsReviewer"];
         }
 
+        //region markers
+        #region Instance properties
         public int Id { get; set; }
         public string Username { get; set; }
         public string Password { get; set; }
@@ -77,6 +132,7 @@ namespace CSharpToSQLLibrary {
         public string Email { get; set; }
         public bool? IsAdmin { get; set; } //? makes it a nullable boolean. Important for nullable columns in SQL.
         public bool? IsReviewer { get; set; }
+        #endregion
 
         public Users() {
         }
