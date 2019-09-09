@@ -11,6 +11,7 @@ namespace CSharpToSQLLibrary {
 
         private const string SqlGetAll = "SELECT * from Vendors ";
         private const string SqlGetByPK = SqlGetAll + " WHERE Id = @Id;";
+        private const string SqlGetByCode = SqlGetAll + "WHERE Code = @Code;";
         private const string SqlDelete = "DELETE from Vendors WHERE Id = @Id;";
         private const string SqlUpdate = "UPDATE Vendors Set " +
             "Code = @Code, Name = @Name, Address = @Address, City = @City, " +
@@ -19,6 +20,18 @@ namespace CSharpToSQLLibrary {
         private const string SqlInsert = "INSERT into Vendors " +
             " (Code, Name, Address, City, State, Zip, Phone, Email) " +
             " VALUES (@Code, @Name, @Address, @City, @State, @Zip, @Phone, @Email) ";
+        private const string SqlGetProducts = SqlGetAll + "join Products on Products.VendorId = Vendors.Id " +
+            " WHERE Vendors.Code = '@Code'";
+
+        //prev SQL statement should be:
+        //declare @code nvarchar(5) = 'GPANY'
+
+        //SELECT* from Products WHERE VendorId =
+	       // (SELECT id from Vendors WHERE Code = @Code)
+
+        public override string ToString() {
+            return $"Id={Id}, Name={Name}, City={City}, State={State}, Phone={Phone}, Email={Email}";
+        }
 
         public static List<Vendors> GetAll() {
             var sqlCmd = new SqlCommand(SqlGetAll, Connection.sqlConnection);
@@ -54,6 +67,7 @@ namespace CSharpToSQLLibrary {
             return rowsAffected == 1;
         }
 
+
         public static bool Update(Vendors vendor) {
             var sql = "UPDATE vendors Set " +
                 " Code = @Code, " +
@@ -77,6 +91,36 @@ namespace CSharpToSQLLibrary {
             sqlCmd.Parameters.AddWithValue("@Id", id); 
             var reader = sqlCmd.ExecuteReader();
             if (!reader.HasRows) { 
+                reader.Close();
+                return null;
+            }
+            reader.Read();
+            var vendor = new Vendors();
+            LoadVendorFromSql(vendor, reader);
+
+            reader.Close();
+            return vendor;
+        }
+
+        public static List<Products> GetProducts(string code) {
+            var sqlCmd = new SqlCommand(SqlGetProducts, Connection.sqlConnection);
+            sqlCmd.Parameters.AddWithValue("@Code", code);
+            var reader = sqlCmd.ExecuteReader();
+            var products = new List<Products>();
+            while(reader.Read()) {
+                var product = new Products();
+                products.Add(product);
+                product.LoadProductFromSql(product, reader);
+            }
+            reader.Close();
+            return products;
+        }
+
+        public static Vendors GetByCode(string code) {
+            var sqlCmd = new SqlCommand(SqlGetByCode, Connection.sqlConnection);
+            sqlCmd.Parameters.AddWithValue("@Code", code);
+            var reader = sqlCmd.ExecuteReader();
+            if (!reader.HasRows) {
                 reader.Close();
                 return null;
             }

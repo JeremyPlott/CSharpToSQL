@@ -11,16 +11,47 @@ namespace CSharpToSQL {
             var conn = new Connection(@"localhost\sqlexpress", "PRSdb");
             conn.Open();
             Products.Connection = conn;
+            Vendors.Connection = conn;
 
-            var lemons = Products.GetByPK(7);
-            Console.WriteLine(lemons);
+            var PRODUCT = Products.GetByPartNbr("30372");
+            //VendorId = Vendors.GetByCode("DNRUS").Id;
+            Console.WriteLine(PRODUCT);
 
-            var products = Products.GetAll();
-            foreach(var p in products) {
-                Console.WriteLine($"Product {p.Name} from Vendor {p.Vendor.Name} is priced at ${p.Price}");
-            }
+            //var product = new Products() {
+            //    PartNbr = "38462", Name = "Refrosted Flakes", Price = 382, Unit = "40032", PhotoPath = null, VendorId = 1        
+            //};
+            //try {
+            //    //insert
+            //    var success = Products.Insert(product);
+            //    //update product.id
+            //    var p = Products.GetByPK(1);
+            //    p.Name = "Dino Bones";
+            //    success = Products.Update(p);
+            //}
+            //catch (Exception ex) {
+            //    Console.WriteLine($"Exception occured {ex.Message}");
+            //}
+
+
+
+            //var lemons = Products.GetByPK(7);
+            //Console.WriteLine(lemons);
+
+            //var products = Products.GetAll();
+            //foreach(var p in products) {
+            //    Console.WriteLine($"Product {p.Name} from Vendor {p.Vendor.Name} is priced at ${p.Price}");
+            //}
+
+
+            var VENDOR = Vendors.GetByCode("BGHTS");
+            Console.WriteLine(VENDOR);
+
+            var prodlist = Vendors.GetProducts("DNRUS");
+            Console.WriteLine(prodlist);
+
 
             conn.Close();
+         
 
         }
 

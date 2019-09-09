@@ -21,17 +21,18 @@ namespace CSharpToSQLLibrary {
         #region SQL Statements
         private const string SqlGetAll = "SELECT * from Products ";
         private const string SqlGetByPK = SqlGetAll + " WHERE Id = @Id;";
+        private const string SqlGetByPartNbr = SqlGetAll + "WHERE PartNbr = @PartNbr;";
         private const string SqlDelete = "DELETE from Products WHERE Id = @Id;";
         private const string SqlUpdate = "UPDATE Products Set " +
             "PartNbr = @PartNbr, Name = @Name, Price = @Price, Unit = @Unit, " +
             "PhotoPath = @PhotoPath, VendorId = @VendorId " +
             "WHERE Id = @Id;";
-        private const string SqlInsert = "INSERT into Products " +
-            " (PartNbr, Name, Price, Unit, PhotoPath, VendorId, Phone, Email) " +
+        private const string SqlInsert = "INSERT Products " +
+            " (PartNbr, Name, Price, Unit, PhotoPath, VendorId) " +
             " VALUES (@PartNbr, @Name, @Price, @Unit, @PhotoPath, @VendorId) ";
         #endregion
 
-        public override string ToString() {
+        public override string ToString() { //prints the actual info instead of just a generic variable location
             return $"Id={Id}, PartNbr={PartNbr}, Name={Name}, Price={Price}, VendorId={VendorId}, Vendor={Vendor}";
         }
 
@@ -55,6 +56,59 @@ namespace CSharpToSQLLibrary {
             }
 
             return products;
+        }
+
+        private static void SetParameterValues(Products product, SqlCommand sqlCmd) {
+            sqlCmd.Parameters.AddWithValue("@PartNbr", product.PartNbr);
+            sqlCmd.Parameters.AddWithValue("@Name", product.Name);
+            sqlCmd.Parameters.AddWithValue("@Price", product.Price);
+            sqlCmd.Parameters.AddWithValue("@Unit", product.Unit);
+            sqlCmd.Parameters.AddWithValue("@PhotoPath", (object)product.PhotoPath ?? DBNull.Value);
+            sqlCmd.Parameters.AddWithValue("@VendorId", product.VendorId);
+            sqlCmd.Parameters.AddWithValue("@Vendor", product.Vendor);
+        }
+
+        public static bool Insert(Products product) {
+            var sqlCmd = new SqlCommand(SqlInsert, Connection.sqlConnection);
+            SetParameterValues(product, sqlCmd);
+            var rowsAffected = sqlCmd.ExecuteNonQuery();
+            return rowsAffected == 1;
+        }
+
+        public static bool Update(Products product) {
+            var sqlCmd = new SqlCommand(SqlUpdate, Connection.sqlConnection);
+            SetParameterValues(product, sqlCmd);
+            sqlCmd.Parameters.AddWithValue("@Id", product.Id);
+            var rowsAffected = sqlCmd.ExecuteNonQuery();
+            return rowsAffected == 1;
+        }
+
+        public static bool Delete(Products product) {
+            var sqlCmd = new SqlCommand(SqlDelete, Connection.sqlConnection);
+            SetParameterValues(product, sqlCmd);
+            sqlCmd.Parameters.AddWithValue("@Id", product.Id);
+            var rowsAffected = sqlCmd.ExecuteNonQuery();
+            return rowsAffected == 1;
+        }
+
+        public static Products GetByPartNbr(string partNbr) {
+            var sqlCmd = new SqlCommand(SqlGetByPartNbr, Connection.sqlConnection);
+            sqlCmd.Parameters.AddWithValue("@PartNbr", partNbr);
+            var reader = sqlCmd.ExecuteReader();
+            if(!reader.HasRows) {
+                reader.Close();
+                return null;
+            }
+            reader.Read();
+            var product = new Products();
+            LoadProductFromSql(product, reader);
+            reader.Close();
+            return product;
+        }
+
+
+        public static bool Delete(int Id) {
+            return false;
         }
 
         public static Products GetByPK(int id) {
